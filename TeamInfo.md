@@ -3,7 +3,7 @@
 |   Info      |        Description     |
 | ----------- | ---------------------- |
 | TeamID      |  Team-088              |
-| TeamName    |  DB_Legends            |
+| TeamName    |  DB_legends            |
 | Captain     |  Ben Goldshteyn        |
 | Captain     |  beng5@illinois.edu    |
 | Member1     |  David Jimenez         |
