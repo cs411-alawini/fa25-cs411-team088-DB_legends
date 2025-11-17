@@ -1,16 +1,73 @@
 # fa25-cs411-team088-DB_legends
-This is a template for CS411 project repository. Please make sure that your title follows the convention: [TeamID]-[YourTeamName]. All TeamID should have a three digit coding (i.e. if you are team 20, you should have team020 as your ID.). You should also make sure that your URL for this repository is [su25-cs411-team000-teamname.git] so TAs can correctly clone your repository and keep them up-to-date.
 
-Once you set up your project, please remember to submit your team formation to the team form.
+1. Clone the repository
 
-Permission:
-You should make sure you allow TAs to access your repository. You can add TA(s) as a collaborator to your repository.
+git clone https://github.com/
+<ORG>/<REPO>.git
+cd <REPO>
 
-Preparing for your release:
-Each submission should be in its own release. Release are specific freezes to your repository. You should submit your commit hash on Canvas or Google Sheets. When tagging your stage, please use the tag stage.x, where x is the number representing the stage.
+🗄️ Backend Setup (Node + Express + PostgreSQL)
+2. Install backend dependencies
 
-Keeping things up-to-date:
-You should make sure you keep your project root files up-to-date. Information for each file/folders are explained.
+cd backend
+npm install
 
-Code Contribution:
-Individual code contribution will be used to evaluate individual contribution to the project. 
+3. Set up PostgreSQL database
+
+Open psql:
+
+psql -U postgres
+
+Run the following SQL commands:
+
+CREATE DATABASE paper_trading;
+CREATE USER paper_user WITH PASSWORD 'paper_pass';
+GRANT ALL PRIVILEGES ON DATABASE paper_trading TO paper_user;
+
+\c paper_trading
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO paper_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO paper_user;
+
+CREATE TABLE IF NOT EXISTS "Transactions" (
+"transactionID" SERIAL PRIMARY KEY,
+"accountID" INT NOT NULL,
+"ticker" VARCHAR(10) NOT NULL,
+"time" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+"side" VARCHAR(10) NOT NULL,
+"quantity" NUMERIC(12,4) NOT NULL,
+"price" NUMERIC(12,2) NOT NULL,
+"kind" VARCHAR(20) NOT NULL DEFAULT 'ORDER',
+"status" VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+"requestedBy" INT NOT NULL,
+"approvedBy" INT NULL
+);
+
+-- Optional seed row
+INSERT INTO "Transactions" ("accountID", "ticker", "side", "quantity", "price", "requestedBy")
+VALUES (1, 'AAPL', 'BUY', 10, 150.00, 1);
+
+Exit psql:
+
+\q
+
+4. Start backend server
+
+cd backend
+npm start
+
+Backend runs at:
+http://localhost:3001
+
+🎨 Frontend Setup (React + Vite)
+5. Install frontend dependencies
+
+cd ../frontend
+npm install
+
+6. Start frontend dev server
+
+npm run dev
+
+Frontend runs at:
+http://localhost:5173
