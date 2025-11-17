@@ -1,0 +1,13 @@
+{
+  "name": "paper-trading-backend",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "pg": "^8.13.0",
+    "cors": "^2.8.5"
+  }
+}
