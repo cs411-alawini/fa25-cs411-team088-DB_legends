@@ -7,6 +7,7 @@ git clone https://github.com/
 cd <REPO>
 
 🗄️ Backend Setup (Node + Express + PostgreSQL)
+
 2. Install backend dependencies
 
 cd backend
