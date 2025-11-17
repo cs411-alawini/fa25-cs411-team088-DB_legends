@@ -61,6 +61,7 @@ Backend runs at:
 http://localhost:3001
 
 🎨 Frontend Setup (React + Vite)
+
 5. Install frontend dependencies
 
 cd ../frontend
