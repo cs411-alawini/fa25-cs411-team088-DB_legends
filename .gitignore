@@ -1,0 +1,101 @@
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+debug.log
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+.vite/
+.cache/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+# Python / Backend
+__pycache__/
+backend/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.build/
+build/
+dist/
+.eggs/
+*.egg-info/
+.wheels/
+.pytest_cache/
+.tox/
+.coverage*
+.coverage.*
+.hypothesis/
+.mypy_cache/
+.pytype/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+backend/.venv/
+backend/venv/
+
+# Databases / Local data
+*.sqlite
+*.sqlite3
+*.db
+
+# Environment files (keep examples)
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Framework outputs (misc)
+.next/
+.nuxt/
+out/
+.netlify/
+.vercel/
+
+# Coverage
+coverage/
+htmlcov/
+# Editor history
+.history/
+# OS
+ehthumbs.db
+
+**/Lib/site-packages/
+*/lib/python/site-packages/
+**/site-packages/
+**/*.dist-info/
+**/*.egg-info/
+pip-wheel-metadata/*
+
