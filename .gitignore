@@ -60,6 +60,11 @@ venv/
 ENV/
 backend/.venv/
 backend/venv/
+backend.venv/
+*.venv/
+.env
+backend/.env
+frontend/.env
 
 # Databases / Local data
 *.sqlite
