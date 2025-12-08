@@ -58,6 +58,10 @@ def create_app() -> Flask:
     app.register_blueprint(exports_bp, url_prefix="/api/exports")
     app.register_blueprint(groups_bp, url_prefix="/api/groups")
 
+    # Start background price simulator so prices advance continuously for all users
+    from .api.market import start_simulator
+    start_simulator(app)
+
     @app.get("/api/health")
     def health():
         return jsonify({"status": "ok"})

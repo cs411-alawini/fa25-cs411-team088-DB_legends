@@ -31,7 +31,7 @@ def list_groups():
     uid = ident.get("id")
     rows = db_query(
         """
-        SELECT g.id, g.name, g.created_at, gm.role
+        SELECT g.id, g.name, g.created_at, g.account_id, gm.role
         FROM group_memberships gm
         JOIN groups g ON g.id = gm.group_id
         WHERE gm.user_id = %(uid)s
@@ -76,8 +76,28 @@ def create_group():
         """,
         {"gid": g["id"], "uid": uid},
     )
+    # Auto-provision a dedicated account for this group
+    acct = db_execute_returning(
+        """
+        INSERT INTO accounts (account_type, name, starting_cash)
+        VALUES ('group', %(n)s, 100000)
+        RETURNING id
+        """,
+        {"n": f"{g['name']} Group Account"},
+    )
+    db_execute("UPDATE groups SET account_id = %(aid)s WHERE id = %(gid)s", {"aid": acct["id"], "gid": g["id"]})
+    # Ensure the creator is an owner of the group account
+    db_execute(
+        """
+        INSERT INTO account_memberships (account_id, user_id, role)
+        VALUES (%(aid)s, %(uid)s, 'owner')
+        ON CONFLICT (account_id, user_id) DO UPDATE SET role = EXCLUDED.role
+        """,
+        {"aid": acct["id"], "uid": uid},
+    )
     _iso(g, "created_at")
     g["role"] = "owner"
+    g["account_id"] = acct["id"]
     return jsonify(g), 201
 
 
@@ -96,6 +116,17 @@ def join_group(group_id: int):
         """,
         {"gid": group_id, "uid": uid},
     )
+    # Ensure an account exists for this group and add the joining user as a trader of that account
+    grp = db_query_one("SELECT account_id, name FROM groups WHERE id = %(gid)s", {"gid": group_id})
+    if grp and grp.get("account_id"):
+        db_execute(
+            """
+            INSERT INTO account_memberships (account_id, user_id, role)
+            VALUES (%(aid)s, %(uid)s, 'trader')
+            ON CONFLICT (account_id, user_id) DO NOTHING
+            """,
+            {"aid": grp["account_id"], "uid": uid},
+        )
     row = db_query(
         "SELECT group_id, user_id, role FROM group_memberships WHERE group_id = %(gid)s AND user_id = %(uid)s",
         {"gid": group_id, "uid": uid},
@@ -129,6 +160,43 @@ def rename_group(group_id: int):
     return jsonify(row or {"error": "not found"}), (200 if row else 404)
 
 
+@bp.post("/<int:group_id>/provision-account")
+@jwt_required()
+def provision_group_account(group_id: int):
+    ident = get_jwt_identity() or {}
+    uid = ident.get("id")
+    # Only owner/manager can provision
+    if not is_group_owner_or_manager(uid, group_id):
+        return jsonify({"error": "forbidden"}), 403
+    grp = db_query_one("SELECT id, name, account_id FROM groups WHERE id = %(gid)s", {"gid": group_id})
+    if not grp:
+        return jsonify({"error": "not found"}), 404
+    if not grp.get("account_id"):
+        acct = db_execute_returning(
+            """
+            INSERT INTO accounts (account_type, name, starting_cash)
+            VALUES ('group', %(n)s, 100000)
+            RETURNING id
+            """,
+            {"n": f"{grp['name']} Group Account"},
+        )
+        db_execute("UPDATE groups SET account_id = %(aid)s WHERE id = %(gid)s", {"aid": acct["id"], "gid": group_id})
+        members = db_query("SELECT user_id, role FROM group_memberships WHERE group_id = %(gid)s", {"gid": group_id})
+        role_map = {"owner": "owner", "manager": "manager", "member": "trader", "viewer": "viewer"}
+        for m in members:
+            r = role_map.get(m["role"], "trader")
+            db_execute(
+                """
+                INSERT INTO account_memberships (account_id, user_id, role)
+                VALUES (%(aid)s, %(uid)s, %(role)s)
+                ON CONFLICT (account_id, user_id) DO UPDATE SET role = EXCLUDED.role
+                """,
+                {"aid": acct["id"], "uid": m["user_id"], "role": r},
+            )
+        return jsonify({"account_id": acct["id"], "provisioned": True})
+    return jsonify({"account_id": grp["account_id"], "provisioned": False})
+
+
 @bp.post("/<int:group_id>/leave")
 @jwt_required()
 def leave_group(group_id: int):
@@ -143,6 +211,13 @@ def leave_group(group_id: int):
         "DELETE FROM group_memberships WHERE group_id = %(gid)s AND user_id = %(uid)s",
         {"gid": group_id, "uid": uid},
     )
+    # Also remove account membership from the group's dedicated account, if any
+    grp = db_query_one("SELECT account_id FROM groups WHERE id = %(gid)s", {"gid": group_id})
+    if grp and grp.get("account_id"):
+        db_execute(
+            "DELETE FROM account_memberships WHERE account_id = %(aid)s AND user_id = %(uid)s",
+            {"aid": grp["account_id"], "uid": uid},
+        )
     return jsonify({"left": rc > 0})
 
 

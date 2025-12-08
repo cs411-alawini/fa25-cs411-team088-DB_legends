@@ -16,6 +16,7 @@ export default function Login() {
       const url = isRegister ? '/api/auth/register' : '/api/auth/login'
       const { data } = await api.post(url, { email, password })
       localStorage.setItem('token', data.token)
+      window.dispatchEvent(new Event('storage'))
       nav('/')
     } catch (e) {
       setError(e.response?.data?.error || e.message)

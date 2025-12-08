@@ -140,8 +140,34 @@ def run_seed():
     _ensure_ticker("AAPL", "Apple Inc.", "stock")
     _ensure_ticker("MSFT", "Microsoft", "stock")
     _ensure_ticker("BTC", "Bitcoin", "crypto")
+    _ensure_ticker("AMZN", "Amazon", "stock")
+    _ensure_ticker("NVDA", "NVIDIA", "stock")
+    _ensure_ticker("TSLA", "Tesla", "stock")
+    _ensure_ticker("GOOGL", "Alphabet Class A", "stock")
+    _ensure_ticker("META", "Meta Platforms", "stock")
+    _ensure_ticker("ETH", "Ethereum", "crypto")
+    # Common ETFs
+    _ensure_ticker("SPY", "SPDR S&P 500 ETF", "etf")
+    _ensure_ticker("QQQ", "Invesco QQQ Trust", "etf")
+    _ensure_ticker("IWM", "iShares Russell 2000 ETF", "etf")
+    _ensure_ticker("GLD", "SPDR Gold Shares", "etf")
+    _ensure_ticker("TLT", "iShares 20+ Year Treasury Bond ETF", "etf")
 
+    # Seed some initial bars so charts have data
     _seed_price_bars("AAPL", 180.0, 50)
+    _seed_price_bars("MSFT", 360.0, 50)
+    _seed_price_bars("AMZN", 150.0, 50)
+    _seed_price_bars("NVDA", 480.0, 50)
+    _seed_price_bars("TSLA", 220.0, 50)
+    _seed_price_bars("GOOGL", 140.0, 50)
+    _seed_price_bars("META", 320.0, 50)
+    _seed_price_bars("SPY", 450.0, 50)
+    _seed_price_bars("QQQ", 390.0, 50)
+    _seed_price_bars("IWM", 190.0, 50)
+    _seed_price_bars("GLD", 190.0, 50)
+    _seed_price_bars("TLT", 95.0, 50)
+    _seed_price_bars("BTC", 42000.0, 50)
+    _seed_price_bars("ETH", 2300.0, 50)
 
     # News
     _ensure_news(

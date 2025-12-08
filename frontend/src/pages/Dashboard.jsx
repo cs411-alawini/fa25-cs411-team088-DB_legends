@@ -17,6 +17,12 @@ export default function Dashboard() {
   const [pnl, setPnl] = useState(null)
   const [live, setLive] = useState(false)
 
+  // Use the group's dedicated account when a group is selected; otherwise use the user's individual account
+  const activeAccountId = (selectedGroup && groups.find(g => String(g.id) === String(selectedGroup))?.account_id) || accountId
+  const activeAccountLabel = selectedGroup
+    ? `Group: ${groups.find(g => String(g.id) === String(selectedGroup))?.name || 'Group'}`
+    : 'Individual'
+
   useEffect(() => {
     api.get('/api/accounts')
       .then(r => {
@@ -49,21 +55,20 @@ export default function Dashboard() {
     api.get(`/api/news?symbol=${symbol}&limit=5`).then(r => setNews(r.data)).catch(()=>setNews([]))
   }, [symbol])
 
-  // Poll latest price when live mode is active
+  // Poll latest price continuously to sync with server-simulated prices
   useEffect(() => {
-    if (!live) return
     const interval = setInterval(fetchLatestPrice, 2000)
     return () => clearInterval(interval)
-  }, [live, symbol])
+  }, [symbol])
 
-  // Poll account data (positions & PnL) when live mode is active
+  // Poll account data (positions & PnL) continuously to keep in sync for the active account
   useEffect(() => {
-    if (!live || !accountId) return
+    if (!activeAccountId) return
     const interval = setInterval(() => {
-      refreshAccount(accountId)
+      refreshAccount(activeAccountId)
     }, 2000)
     return () => clearInterval(interval)
-  }, [live, accountId])
+  }, [activeAccountId])
 
   const refreshAccount = async (aid) => {
     try {
@@ -79,10 +84,10 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (accountId) {
-      refreshAccount(accountId)
+    if (activeAccountId) {
+      refreshAccount(activeAccountId)
     }
-  }, [accountId])
+  }, [activeAccountId])
 
   return (
     <div>
@@ -103,17 +108,7 @@ export default function Dashboard() {
               ))}
             </select>
           </div>
-          <div style={{display:'flex', gap:12, alignItems:'center', marginTop:12, padding:'12px', background:'rgba(30,41,59,0.2)', borderRadius:'10px'}}>
-            <label style={{fontWeight:500}}>Live Mode</label>
-            <button 
-              className={live ? 'btn-primary' : ''} 
-              onClick={()=>setLive(v=>!v)}
-              style={{minWidth:'120px'}}
-            >
-              {live ? '🔴 Stop Live' : '▶️ Start Live'}
-            </button>
-            {live && <span className="live-indicator">● Simulating price updates</span>}
-          </div>
+          
           {latest ? (
             <div style={{marginTop:8}}>
               <div><b>{symbol}</b> latest: ${latest.close?.toFixed?.(2) ?? latest.close}</div>
@@ -125,19 +120,16 @@ export default function Dashboard() {
               symbol={symbol} 
               width={480} 
               height={220} 
-              live={live}
               onNewPrice={(price) => setLatest(price)}
             />
           </div>
           {accounts.length > 0 ? (
             <div style={{marginTop:16}}>
               <OrderForm
-                accountId={accountId || accounts[0]?.id}
+                accountId={activeAccountId || accounts[0]?.id}
                 defaultSymbol={symbol}
                 groupId={selectedGroup || null}
-                live={live}
-                latestPrice={latest?.close}
-                onPlaced={() => refreshAccount(accountId || accounts[0]?.id)}
+                onPlaced={() => refreshAccount(activeAccountId || accounts[0]?.id)}
               />
             </div>
           ) : (

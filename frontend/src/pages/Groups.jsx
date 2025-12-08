@@ -192,14 +192,14 @@ export default function Groups() {
         <h3>Group Orders {selected ? `for ${selected.name}` : ''}</h3>
         {selected && orders.length === 0 && <div>No open orders.</div>}
         {orders.length > 0 && (
-          <table className="table">
+          <table className="table" style={{width:'100%', tableLayout:'auto', fontSize:13}}>
             <thead>
               <tr>
                 <th>Id</th>
                 <th>Account</th>
                 <th>Ticker</th>
                 <th>Side</th>
-                <th>Qty</th>
+                <th className="num">Qty</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -207,12 +207,12 @@ export default function Groups() {
             <tbody>
               {orders.map(o => (
                 <tr key={o.id}>
-                  <td>{o.id}</td>
-                  <td>{o.account_id}</td>
-                  <td>{o.ticker}</td>
-                  <td>{o.side}</td>
-                  <td>{o.qty}</td>
-                  <td>{o.status}</td>
+                  <td style={{whiteSpace:'normal', overflowWrap:'anywhere'}}>{o.id}</td>
+                  <td style={{whiteSpace:'normal', overflowWrap:'anywhere'}}>{o.account_id}</td>
+                  <td style={{whiteSpace:'normal', overflowWrap:'anywhere'}}>{o.ticker}</td>
+                  <td style={{whiteSpace:'normal', overflowWrap:'anywhere'}}>{o.side}</td>
+                  <td className="num" style={{whiteSpace:'normal', overflowWrap:'anywhere'}}>{o.qty}</td>
+                  <td style={{whiteSpace:'normal', overflowWrap:'anywhere'}}>{o.status}</td>
                   <td>
                     <button onClick={()=>processOrder(o.id)}>Process</button>
                   </td>

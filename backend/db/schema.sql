@@ -49,6 +49,10 @@ FROM news_articles n
 JOIN news_ticker_map m ON m.article_id = n.id
 GROUP BY m.ticker, n.sentiment;
 
+-- Link each group to a dedicated trading account (for shared group portfolio)
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS account_id INT REFERENCES accounts(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS ix_groups_account_id ON groups(account_id);
+
 -- Enhanced PnL per account with proper cash tracking
 DROP VIEW IF EXISTS account_pnl_basic CASCADE;
 CREATE VIEW account_pnl_basic AS

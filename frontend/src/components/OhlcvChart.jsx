@@ -14,14 +14,19 @@ export default function OhlcvChart({ symbol, height = 220, width = 480, limit = 
   }, [symbol, limit])
 
   useEffect(() => {
-    if (!live) return
     const id = setInterval(async () => {
       try {
-        const sim = await api.post(`/api/market/tickers/${symbol}/simulate`)
-        const bar = sim.data
+        const res = await api.get(`/api/market/tickers/${symbol}/latest`)
+        const bar = res.data
         setRows(prev => {
-          const next = [...prev, bar]
-          if (next.length > limit) next.shift()
+          const next = prev.slice()
+          const last = next[next.length - 1]
+          if (!last || last.time !== bar.time) {
+            next.push(bar)
+            if (next.length > limit) next.shift()
+          } else {
+            next[next.length - 1] = bar
+          }
           return next
         })
         // Notify parent of new price
@@ -29,7 +34,7 @@ export default function OhlcvChart({ symbol, height = 220, width = 480, limit = 
       } catch {}
     }, 2000)
     return () => clearInterval(id)
-  }, [live, symbol, limit, onNewPrice])
+  }, [symbol, limit])
 
   const path = useMemo(() => {
     if (!rows.length) return ''
