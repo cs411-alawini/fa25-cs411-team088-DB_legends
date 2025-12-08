@@ -12,6 +12,8 @@ export default function Groups() {
   const [discover, setDiscover] = useState([])
   const [q, setQ] = useState('')
   const [includeMine, setIncludeMine] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [renameName, setRenameName] = useState('')
 
   const handleAuthError = (e) => {
     const status = e?.response?.status
@@ -21,6 +23,42 @@ export default function Groups() {
       return true
     }
     return false
+  }
+
+  const startRename = (g) => {
+    setErr('')
+    setEditingId(g.id)
+    setRenameName(g.name || '')
+  }
+
+  const cancelRename = () => {
+    setEditingId(null)
+    setRenameName('')
+  }
+
+  const saveRename = async (g) => {
+    setErr('')
+    const n = renameName.trim()
+    if (!n) { setErr('Name is required'); return }
+    try {
+      await api.put(`/api/groups/${g.id}`, { name: n })
+      await load()
+      if (selected?.id === g.id) setSelected({ ...g, name: n })
+      cancelRename()
+      await loadDiscover()
+    } catch (e) {
+      if (!handleAuthError(e)) setErr(e.response?.data?.error || e.message)
+    }
+  }
+
+  const processOrder = async (orderId) => {
+    setErr('')
+    try {
+      await api.post(`/api/orders/${orderId}/process`)
+      if (selected) await loadOrders(selected)
+    } catch (e) {
+      if (!handleAuthError(e)) setErr(e.response?.data?.error || e.message)
+    }
   }
 
   const load = async () => {
@@ -116,6 +154,17 @@ export default function Groups() {
             <li key={g.id}>
               <button onClick={()=>loadOrders(g)} style={{marginRight:8}}>{g.name}</button>
               <small>role: {g.role}</small>
+              {(g.role === 'owner' || g.role === 'manager') && (
+                editingId === g.id ? (
+                  <span style={{marginLeft:8, display:'inline-flex', gap:6, alignItems:'center'}}>
+                    <input value={renameName} onChange={e=>setRenameName(e.target.value)} placeholder="New name" />
+                    <button onClick={()=>saveRename(g)}>Save</button>
+                    <button onClick={cancelRename}>Cancel</button>
+                  </span>
+                ) : (
+                  <button onClick={()=>startRename(g)} style={{marginLeft:8}}>Rename</button>
+                )
+              )}
               {g.role === 'owner' ? (
                 <button
                   style={{marginLeft:8}}
@@ -152,6 +201,7 @@ export default function Groups() {
                 <th>Side</th>
                 <th>Qty</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -163,6 +213,9 @@ export default function Groups() {
                   <td>{o.side}</td>
                   <td>{o.qty}</td>
                   <td>{o.status}</td>
+                  <td>
+                    <button onClick={()=>processOrder(o.id)}>Process</button>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -27,11 +27,13 @@ def get_pool() -> pool.SimpleConnectionPool:
 
 
 @contextmanager
-def get_conn_cursor(dict_cursor: bool = True):
+def get_conn_cursor(dict_cursor: bool = True, isolation_level: Optional[str] = None):
     p = get_pool()
     conn = p.getconn()
     try:
         cur = conn.cursor(cursor_factory=RealDictCursor if dict_cursor else None)
+        if isolation_level:
+            cur.execute(f"SET LOCAL TRANSACTION ISOLATION LEVEL {isolation_level}")
         yield conn, cur
         conn.commit()
     except Exception:

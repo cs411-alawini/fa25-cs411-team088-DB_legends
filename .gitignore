@@ -66,7 +66,6 @@ backend.venv/
 backend/.env
 frontend/.env
 
-
 # Databases / Local data
 *.sqlite
 *.sqlite3
@@ -82,6 +81,7 @@ frontend/.env.*
 !.env.example
 !backend/.env.example
 !frontend/.env.example
+backend.venv/
 
 # Framework outputs (misc)
 .next/
