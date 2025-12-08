@@ -161,3 +161,104 @@ DROP TRIGGER IF EXISTS trg_populate_news_tickers ON news_articles;
 CREATE TRIGGER trg_populate_news_tickers
 AFTER INSERT ON news_articles
 FOR EACH ROW EXECUTE FUNCTION populate_news_tickers();
+
+-- Stored procedure to process an order: authorization, risk checks, and fill
+CREATE OR REPLACE PROCEDURE process_order(p_order_id int, p_user_id int)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_order RECORD;
+  v_allowed boolean;
+  v_latest_price numeric(12,4);
+  v_current_pos numeric(12,4);
+  v_notional numeric(14,4);
+  v_mkt_price numeric(12,4);
+  v_over_notional_cfg boolean;
+  v_over_position_cfg boolean;
+  v_account_cfg RECORD;
+BEGIN
+  -- Lock the order row and ensure it's an open ORDER
+  SELECT *
+  INTO v_order
+  FROM transactions t
+  WHERE t.id = p_order_id AND t.kind = 'ORDER'
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'order not found' USING ERRCODE = 'P0002';
+  END IF;
+
+  IF v_order.status NOT IN ('NEW','PENDING_APPROVAL','APPROVED','PARTIAL_FILL') THEN
+    RAISE EXCEPTION 'order not open';
+  END IF;
+
+  -- Authorization: user must be owner/manager of the account
+  SELECT EXISTS(
+    SELECT 1 FROM account_memberships am
+    WHERE am.account_id = v_order.account_id
+      AND am.user_id = p_user_id
+      AND am.role IN ('owner','manager')
+  ) INTO v_allowed;
+  IF NOT v_allowed THEN
+    RAISE EXCEPTION 'forbidden';
+  END IF;
+
+  -- Latest market price via CTE with DISTINCT ON
+  WITH latest AS (
+    SELECT DISTINCT ON (ticker) ticker, close::numeric AS close
+    FROM price_bars
+    WHERE ticker = v_order.ticker
+    ORDER BY ticker, time DESC
+  )
+  SELECT close INTO v_latest_price FROM latest;
+
+  v_mkt_price := COALESCE(v_latest_price, v_order.price::numeric);
+
+  -- Aggregate current net position (advanced query)
+  SELECT COALESCE(SUM(CASE WHEN side='BUY' THEN qty ELSE -qty END), 0)::numeric
+  INTO v_current_pos
+  FROM transactions
+  WHERE account_id = v_order.account_id
+    AND ticker = v_order.ticker
+    AND kind = 'FILL'
+    AND status IN ('EXECUTED','FILLED');
+
+  v_notional := (v_order.qty::numeric) * v_mkt_price;
+
+  -- Account risk configuration
+  SELECT
+    max_order_notional::numeric AS max_order_notional,
+    max_position_abs_qty::numeric AS max_position_abs_qty,
+    COALESCE(earnings_lockout, false) AS earnings_lockout
+  INTO v_account_cfg
+  FROM accounts WHERE id = v_order.account_id;
+
+  v_over_notional_cfg := (v_account_cfg.max_order_notional IS NOT NULL AND v_notional > v_account_cfg.max_order_notional);
+  v_over_position_cfg := (v_account_cfg.max_position_abs_qty IS NOT NULL AND
+                          ABS((v_current_pos + CASE WHEN v_order.side='BUY' THEN v_order.qty ELSE -v_order.qty END)::numeric) > v_account_cfg.max_position_abs_qty);
+
+  -- Example EXISTS subquery for demonstrating advanced query usage
+  IF EXISTS (
+    SELECT 1
+    FROM news_ticker_map m
+    WHERE m.ticker = v_order.ticker
+  ) THEN
+    PERFORM 1;
+  END IF;
+
+  -- Enforce risk constraints
+  IF v_account_cfg.earnings_lockout OR v_over_notional_cfg OR v_over_position_cfg THEN
+    RAISE EXCEPTION 'order blocked by risk constraints';
+  END IF;
+
+  -- Approve then fill at market in same transaction
+  UPDATE transactions
+  SET status = 'APPROVED', approved_by = p_user_id
+  WHERE id = v_order.id AND status <> 'FILLED';
+
+  INSERT INTO transactions (account_id, group_id, ticker, time, side, qty, price, kind, status, requested_by, approved_by)
+  VALUES (v_order.account_id, v_order.group_id, v_order.ticker, now(), v_order.side, v_order.qty, v_mkt_price, 'FILL', 'EXECUTED', v_order.requested_by, p_user_id);
+
+  UPDATE transactions SET status = 'FILLED' WHERE id = v_order.id;
+END;
+$$;

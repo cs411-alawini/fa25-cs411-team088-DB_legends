@@ -76,6 +76,7 @@ backend/.env.*
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
+backend.venv/
 
 # Framework outputs (misc)
 .next/

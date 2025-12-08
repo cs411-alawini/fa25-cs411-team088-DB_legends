@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from ..db import db_query, db_execute, db_execute_returning
+from ..db import db_query, db_execute, db_execute_returning, db_query_one
 from ..authz import is_group_member, is_group_owner_or_manager
 
 bp = Blueprint("groups", __name__)
@@ -101,6 +101,32 @@ def join_group(group_id: int):
         {"gid": group_id, "uid": uid},
     )
     return jsonify(row[0] if row else {"group_id": group_id, "user_id": uid, "role": "member"})
+
+
+@bp.put("/<int:group_id>")
+@jwt_required()
+def rename_group(group_id: int):
+    ident = get_jwt_identity() or {}
+    uid = ident.get("id")
+    # Only owner or manager can rename
+    if not is_group_owner_or_manager(uid, group_id):
+        return jsonify({"error": "forbidden"}), 403
+    data = request.get_json() or {}
+    new_name = (data.get("name") or "").strip()
+    if not new_name:
+        return jsonify({"error": "name required"}), 400
+    # Case-insensitive uniqueness check
+    exists = db_query(
+        "SELECT 1 FROM groups WHERE id <> %(gid)s AND LOWER(name) = LOWER(%(n)s) LIMIT 1",
+        {"gid": group_id, "n": new_name},
+    )
+    if exists:
+        return jsonify({"error": "group name already exists"}), 400
+    db_execute("UPDATE groups SET name = %(n)s WHERE id = %(gid)s", {"n": new_name, "gid": group_id})
+    row = db_query_one("SELECT id, name, created_at, created_by FROM groups WHERE id = %(gid)s", {"gid": group_id})
+    if row and row.get("created_at"):
+        row["created_at"] = row["created_at"].isoformat()
+    return jsonify(row or {"error": "not found"}), (200 if row else 404)
 
 
 @bp.post("/<int:group_id>/leave")

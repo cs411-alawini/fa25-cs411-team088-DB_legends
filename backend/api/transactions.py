@@ -144,7 +144,7 @@ def create_order(account_id: int):
     if group_id is not None and not is_group_member(user_id, int(group_id)):
         return jsonify({"error": "forbidden (group)"}), 403
 
-    with get_conn_cursor(True) as (_, cur):
+    with get_conn_cursor(True, isolation_level="REPEATABLE READ") as (_, cur):
         # Insert ORDER row
         cur.execute(
             """
@@ -243,7 +243,9 @@ def approve_order(order_id: int):
         return jsonify({"error": "forbidden"}), 403
 
     mkt_px = _latest_price(row["ticker"]) or float(row["price"])
-    with get_conn_cursor(True) as (_, cur):
+    with get_conn_cursor(True, isolation_level="REPEATABLE READ") as (_, cur):
+        # Lock the order row to prevent concurrent approvals
+        cur.execute("SELECT id FROM transactions WHERE id = %(id)s AND kind = 'ORDER' FOR UPDATE", {"id": order_id})
         # Approve
         cur.execute(
             "UPDATE transactions SET status = 'APPROVED', approved_by = %(uid)s WHERE id = %(id)s",
@@ -263,3 +265,30 @@ def approve_order(order_id: int):
         )
         cur.execute("UPDATE transactions SET status = 'FILLED' WHERE id = %(id)s", {"id": order_id})
     return jsonify({"ok": True})
+
+
+@bp.post("/orders/<int:order_id>/process")
+@jwt_required()
+def process_order_endpoint(order_id: int):
+    ident = get_jwt_identity() or {}
+    user_id = ident.get("id")
+    # Execute stored procedure within a transaction using REPEATABLE READ
+    try:
+        with get_conn_cursor(True, isolation_level="REPEATABLE READ") as (_, cur):
+            cur.execute("CALL process_order(%s, %s)", (order_id, user_id))
+            # Return the updated order row
+            cur.execute(
+                """
+                SELECT id, account_id, ticker, time, side,
+                       qty::float8 AS qty, price::float8 AS price,
+                       kind, status, requested_by, approved_by
+                FROM transactions WHERE id = %(id)s
+                """,
+                {"id": order_id},
+            )
+            res = cur.fetchone()
+        if res and res.get("time"):
+            res["time"] = res["time"].isoformat()
+        return jsonify(res or {"error": "not found"}), (200 if res else 404)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
