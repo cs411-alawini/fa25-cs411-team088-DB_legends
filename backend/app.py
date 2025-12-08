@@ -20,7 +20,22 @@ def create_app() -> Flask:
     jwt.init_app(app)
 
     # CORS
-    CORS(app, resources={r"/api/*": {"origins": app.config.get("CORS_ORIGINS", "*")}})
+    origins_env = app.config.get("CORS_ORIGINS", "*")
+    if isinstance(origins_env, str) and origins_env != "*":
+        origins = [o.strip() for o in origins_env.split(",") if o.strip()]
+    else:
+        origins = origins_env
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": origins,
+                "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+                "allow_headers": ["Authorization", "Content-Type"],
+                "expose_headers": ["Authorization"],
+            }
+        },
+    )
 
     # Register API blueprints
     from .api.auth import bp as auth_bp
