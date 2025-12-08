@@ -1,0 +1,42 @@
+Project Title:
+Paper trading
+
+Project Summary:
+  This web-based application will allow users to practice their trading skills on both historical/real and artificial stock markets. 
+  In addition, users can trade together in groups, compete against each other (e.g., users vs. users, groups vs. groups), and participate in tournaments between users and groups (with potential prizes for high-placing participants).
+
+Description:
+  A paper-trading application that allows people to either trade individually or collaboratively in a collective brokerage account. 
+  Users can take on one of three roles: the owner, trader, or risk manager. Users can place orders or create strategy templates that can be stored, reused, and/or modified. 
+  Bigger, or riskier, orders may require approval before execution and all activity will be logged.
+  We will use two kinds of price data: 1) Real, historical prices of stocks and futures for realistic backtests and paper trades, and 2) artificial prices we generate to test strategies in different market conditions. 
+  There will also be a news feed that pulls company updates, filings, and big events like earnings. We add simple tags for sentiment and impact, and show the headlines on symbol pages, the dashboard, and in the approvals view. 
+  Templates can include rules like an “earnings lockout.” 
+  Behind the scenes, we keep one table for user info and several tables for the main stuff: accounts, memberships, tickers, price bars, news, and transactions; this meets the “5+ entities, 1 user entity max” requirement.
+
+Creative Components:
+- Collaborate trading groups: This feature allows users with individual accounts to mutually trade as a group, meaning group trades come from the group’s balance (which is defined as the sum of all the users’ individual account balances), 
+  and that each group trade’s profit/loss counts for that group’s profit/loss (but does not affect the individual account balance of any user in the group). 
+- Difficulty scales for products, whereby various levels of randomness can cause some products to have more/less obvious patterns you can trade off. 
+- News affecting prices of various products to different extents
+
+Usefulness:
+  Our paper-trading app is useful for individual and collaborative practice. Individuals get access to reusable templates, backtests on real data, stress-tests on random series, news/earnings reports, and simple risk guards like max loss and position caps. 
+  Groups will have a shared account with roles like the owner, trader, risk manager, and an additional role called the viewer. 
+  They will also have approvals for big or risky orders, have trails to monitor each activity, search tickets, view charts, place market/limit/stop orders, track positions, and view trade history with exports. 
+  The tools that will come along with our paper-trading app support quick solo iteration and optional team controls to build repeatable, news-aware, and risk-managed habits.
+
+Realness:
+  We’ll give users the choice to choose between a historical/real market and a simulated/artificial market. The simulations can be random walks seeded by the real series. 
+  All market data will come as a CSV with three columns: time, stock name, and price. For generated data, there’s effectively no upper limit on how many rows you can create.
+
+Functionality:
+  Below are examples of data we expect to use in this web-based application: 
+
+users: id, email, password_hash, created_at
+accounts: id, account_type, name, starting_cash, created_at
+account_memberships: account_id, user_id, role (PK: both)
+tickers: symbol, name, asset_type
+price_bars: ticker, time, open, high, low, close, volume, source (REAL from Stooq/Alpha Vantage; SIM from generator)
+news_articles: id, published_at, source, title, url, sentiment, impact_tags[] + bridge news_ticker_map(article_id, ticker)
+Transactions: id, account_id, time, ticker, side(BUY/SELL), qty, price, kind(ORDER|FILL), status, requested_by, approved_by NULLABLE
