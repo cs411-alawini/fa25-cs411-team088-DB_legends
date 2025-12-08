@@ -71,15 +71,15 @@ frontend/.env
 *.sqlite3
 *.db
 
-# Environment files (keep examples)
+# Environment files (never commit real secrets)
 .env
-.env.*
-!.env.example
 backend/.env
-backend/.env.*
-!backend/.env.example
 frontend/.env
+.env.*
+backend/.env.*
 frontend/.env.*
+!.env.example
+!backend/.env.example
 !frontend/.env.example
 backend.venv/
 
