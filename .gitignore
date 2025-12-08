@@ -58,9 +58,9 @@ dist/
 .venv/
 venv/
 ENV/
-backend.venv/
 backend/.venv/
 backend/venv/
+backend.venv/
 *.venv/
 .env
 backend/.env
