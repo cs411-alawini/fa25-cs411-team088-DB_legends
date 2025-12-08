@@ -11,7 +11,13 @@ A web-based paper trading app with Flask (Python) backend and React (Vite) front
     psql -U postgres -c "CREATE DATABASE paper_trading;"
     # Optionally create a dedicated user: psql -U postgres -c "CREATE USER pt WITH PASSWORD 'pt'; GRANT ALL PRIVILEGES ON DATABASE paper_trading TO pt;"
     ```
-  - Copy `backend/.env.example` to `backend/.env` and adjust `DATABASE_URL` if needed (default: `postgresql://postgres:postgres@localhost:5432/paper_trading`).
+  - Create `backend/.env` with at least `DATABASE_URL` (example below).
+    ```env
+    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/paper_trading
+    SECRET_KEY=dev-secret
+    JWT_SECRET_KEY=dev-jwt
+    CORS_ORIGINS=*
+    ```
   - Create venv and install deps:
     ```bash
     python -m venv .venv
@@ -20,13 +26,13 @@ A web-based paper trading app with Flask (Python) backend and React (Vite) front
     ```
   - Create tables, apply views/triggers, seed sample data:
     ```bash
-    flask --app backend.app create-db
-    flask --app backend.app apply-schema
-    flask --app backend.app seed
+    python -m flask --app backend.app create-db
+    python -m flask --app backend.app apply-schema
+    python -m flask --app backend.app seed
     ```
   - Run the API:
     ```bash
-    flask --app backend.app run --debug
+    python -m flask --app backend.app run --debug
     ```
   - Health check: http://localhost:5000/api/health
 
@@ -37,6 +43,11 @@ A web-based paper trading app with Flask (Python) backend and React (Vite) front
     npm run dev
     ```
   - Visit http://localhost:5173
+  - API base URL defaults to `http://localhost:5000`. To override, create `frontend/.env`:
+    ```env
+    VITE_API_URL=http://localhost:5000
+    ```
+  - Ports: API 5000, Frontend 5173. Stop servers with Ctrl+C in each terminal.
 
 ## Notes
 
